@@ -41,7 +41,7 @@
   ```
     可以看到函数的逻辑比较清晰，在判断需要`invalidate`后，会更新相关的`flag`, 并且调用`p.invalidateChild(this, damage);`。
 
-1. `viewGroup.invalidateChild`
+2. `viewGroup.invalidateChild`
 
   ```
   @Override
@@ -84,4 +84,84 @@
 
   ```
   在`invalidateChild`中，核心部分是一个do while的循环。我们会发现当前的`ViewGroup`不断调用`parent`的`invalidateChildInParent`。对于一般的`ViewGroup`来讲，它的`parent`还是`ViewGroup`。所以先来看`ViewGroup`的`invalidateChildInParent`。
-    
+  
+3. `viewGroup.invalidateChildInParent`
+  ```
+  @Override
+  public ViewParent invalidateChildInParent(final int[] location, final Rect dirty) {
+      // Normally we go to this branch sicne PFLAG_DRAWN is set
+      if ((mPrivateFlags & PFLAG_DRAWN) == PFLAG_DRAWN ||
+              (mPrivateFlags & PFLAG_DRAWING_CACHE_VALID) == PFLAG_DRAWING_CACHE_VALID) {
+          if ((mGroupFlags & (FLAG_OPTIMIZE_INVALIDATE | FLAG_ANIMATION_DONE)) !=
+                      FLAG_OPTIMIZE_INVALIDATE) {
+              // We change the coordinate from child index to parent index
+              dirty.offset(location[CHILD_LEFT_INDEX] - mScrollX,
+                      location[CHILD_TOP_INDEX] - mScrollY);
+
+              if ((mGroupFlags & FLAG_CLIP_CHILDREN) == 0) {
+                  dirty.union(0, 0, mRight - mLeft, mBottom - mTop);
+              }
+
+              final int left = mLeft;
+              final int top = mTop;
+
+              if ((mGroupFlags & FLAG_CLIP_CHILDREN) == FLAG_CLIP_CHILDREN) {
+                  if (!dirty.intersect(0, 0, mRight - left, mBottom - top)) {
+                      dirty.setEmpty();
+                  }
+              }
+              mPrivateFlags &= ~PFLAG_DRAWING_CACHE_VALID;
+
+              location[CHILD_LEFT_INDEX] = left;
+              location[CHILD_TOP_INDEX] = top;
+
+              if (mLayerType != LAYER_TYPE_NONE) {
+                  mPrivateFlags |= PFLAG_INVALIDATED;
+              }
+
+              return mParent;
+
+          } else {
+              mPrivateFlags &= ~PFLAG_DRAWN & ~PFLAG_DRAWING_CACHE_VALID;
+
+              location[CHILD_LEFT_INDEX] = mLeft;
+              location[CHILD_TOP_INDEX] = mTop;
+              if ((mGroupFlags & FLAG_CLIP_CHILDREN) == FLAG_CLIP_CHILDREN) {
+                  dirty.set(0, 0, mRight - mLeft, mBottom - mTop);
+              } else {
+                  // in case the dirty rect extends outside the bounds of this container
+                  dirty.union(0, 0, mRight - mLeft, mBottom - mTop);
+              }
+
+              if (mLayerType != LAYER_TYPE_NONE) {
+                  mPrivateFlags |= PFLAG_INVALIDATED;
+              }
+
+              return mParent;
+          }
+      }
+
+      return null;
+  }
+  ```
+  首先`PFLAG_DRAWN`这个flag是在`view.draw()`里被设置的，对于一般`invalidate`的情况，`PFLAG_DRAWN`为1所以我们进入第一个分支。`FLAG_CLIP_CHILDREN`这个flag是通过设置`clipChildren`这个属性设置的。它用来控制`parent view`是否裁剪`child view`。默认情况这个flag的值为0。
+  
+  以这样一个例子说明计算的流程
+  ```
+  <FrameLayout
+      android:id="@+id/parent"
+      android:layout_marginLeft="20px"
+      android:layout_marginTop="20px"
+      android:layout_width="100px"
+      android:layout_height="100px">
+      <FrameLayout
+          android:id="@+id/child"
+          android:layout_marginLeft="30px"
+          android:layout_marginTop="30px"
+          android:layout_width="50px"
+          android:layout_height="50px" />
+  </FrameLayout>
+  ```
+  则调用 `invalidateChildInParent`, 开始时`location`为30，30, `dirty`为0，0，50，50，经过`offset`计算后，`location`为20，20, `dirty`为30，30，80，80。相当于将`dirty`区域的坐标由`child`的坐标系坐标转换为了以`parent`的坐标系坐标。
+  根据android的`view hierarchy`，最后我们会调用`ViewRootImpl.invalidateChildInParent()`方法。
+  
