@@ -163,5 +163,63 @@
   </FrameLayout>
   ```
   则调用 `invalidateChildInParent`, 开始时`location`为30，30, `dirty`为0，0，50，50，经过`offset`计算后，`location`为20，20, `dirty`为30，30，80，80。相当于将`dirty`区域的坐标由`child`的坐标系坐标转换为了以`parent`的坐标系坐标。
-  根据android的`view hierarchy`，最后我们会调用`ViewRootImpl.invalidateChildInParent()`方法。
+  根据android的`view hierarchy`，最后我们会调用`viewRootImpl.invalidateChildInParent()`方法。
   
+4. `viewRootImpl.invalidateChildInParent`
+  ```
+  @Override
+  public ViewParent invalidateChildInParent(int[] location, Rect dirty) {
+      checkThread();
+      if (DEBUG_DRAW) Log.v(mTag, "Invalidate child: " + dirty);
+
+      // Dirty area check
+      if (dirty == null) {
+          invalidate();
+          return null;
+      } else if (dirty.isEmpty() && !mIsAnimating) {
+          return null;
+      }
+
+      // Update dirty area location
+      if (mCurScrollY != 0 || mTranslator != null) {
+          mTempRect.set(dirty);
+          dirty = mTempRect;
+          if (mCurScrollY != 0) {
+              dirty.offset(0, -mCurScrollY);
+          }
+          if (mTranslator != null) {
+              mTranslator.translateRectInAppWindowToScreen(dirty);
+          }
+          if (mAttachInfo.mScalingRequired) {
+              dirty.inset(-1, -1);
+          }
+      }
+
+      invalidateRectOnScreen(dirty);
+
+      return null;
+  }
+
+  private void invalidateRectOnScreen(Rect dirty) {
+      final Rect localDirty = mDirty;
+      if (!localDirty.isEmpty() && !localDirty.contains(dirty)) {
+          mAttachInfo.mSetIgnoreDirtyState = true;
+          mAttachInfo.mIgnoreDirtyState = true;
+      }
+
+      // Add the new dirty rect to the current one
+      localDirty.union(dirty.left, dirty.top, dirty.right, dirty.bottom);
+      // Intersect with the bounds of the window to skip
+      // updates that lie outside of the visible region
+      final float appScale = mAttachInfo.mApplicationScale;
+      final boolean intersected = localDirty.intersect(0, 0,
+              (int) (mWidth * appScale + 0.5f), (int) (mHeight * appScale + 0.5f));
+      if (!intersected) {
+          localDirty.setEmpty();
+      }
+      if (!mWillDrawSoon && (intersected || mIsAnimating)) {
+          scheduleTraversals();
+      }
+  }
+  ```
+  这段代码比较直白，做了一些必要的检查和update dirty的坐标后，将dirty和现有的dirty取并集，如果发现dirty区域和`viewRootImpl`的位置有重叠的话，则通过`scheduleTraversals()`来开始重绘过程。
