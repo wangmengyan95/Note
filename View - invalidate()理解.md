@@ -223,3 +223,6 @@
   }
   ```
   这段代码比较直白，做了一些必要的检查和update dirty的坐标后，将dirty和现有的dirty取并集，如果发现dirty区域和`viewRootImpl`的位置有重叠的话，则通过`scheduleTraversals()`来开始重绘过程。
+  
+### Conclusion
+综上所述，当我们调用`invalidate()`后，我们会由当前的`view`上诉至`root view`，在这个过程中不断更新dirty区域的坐标，最后通过`viewRootImpl.scheduleTraversals()`开始重绘。
