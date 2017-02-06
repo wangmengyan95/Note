@@ -16,5 +16,5 @@
 * Binder_1
 * Binder_2
 
-## 多个Activity,Service的实验
-为了验证不同的Activity，Service都运行于同一个进程，进行一个简单的实验。创建一个空的Activity和Service，两个类包含成员变量`public static int TEST`。
+## 多个Activity, Service的实验
+为了验证不同的Activity，Service都运行于同一个进程，进行一个简单的实验。创建一个空的Activity和Service，两个类包含成员变量`public static int TEST`。在启动Activity和Service前修改`TEST`的值，我们可以发现在Activty和Service的`onCreate`函数内，`TEST`的值已经是被修改后的值。
