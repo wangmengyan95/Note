@@ -18,4 +18,7 @@
 
 ## 多个Activity, Service的实验
 为了验证不同的Activity，Service都运行于同一个进程，进行一个简单的实验。创建一个空的Activity和Service，两个类包含成员变量`public static int TEST`。在启动Activity和Service前修改`TEST`的值，我们可以发现在Activty和Service的`onCreate`函数内，`TEST`的值已经是被修改后的值。
+
 当我们为Activity和Service加上`android:process="XXX"`指定Activity和Service运行的进程后，我们可以发现此时`TEST`的值已经是默认值。
+
+由此我们可以看出，如果没有特殊的指定，一个基本的Android app，它所包含的Activity，Service等全部运行在一个进程里。
