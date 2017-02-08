@@ -1,0 +1,2 @@
+
+Looper是Android线程通信的基础组件之一。顾名思义，Looper循环不断的从MessageQueue中取出message，交给Handler来处理。从后面的代码分析中我们可以发现，Looper与MessageQueue是一一对应的关系。
