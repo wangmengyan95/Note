@@ -51,4 +51,4 @@ public static void loop() {
     }
 }
 ```
-loop()函数是Looper工作的核心。不过其实也比较容易理解。Looper不断的阻塞的从MessageQueue中取出message，并交给message的target来处理。
+loop()函数是Looper工作的核心。不过其实也比较容易理解。Looper不断的阻塞的从MessageQueue中取出message，并交给message的target来处理。msg.target实际上是一个Handler，在接下来的文章中会继续理解Handler是怎么工作的。
