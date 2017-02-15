@@ -39,5 +39,13 @@ private boolean enqueueMessage(MessageQueue queue, Message msg, long uptimeMilli
     return queue.enqueueMessage(msg, uptimeMillis);
 }
 ```
-Handler的绝大部分方法都是用来send Message的。各种各样不同的方法其实最后就是调用了sendMessageAtTime这个函数。从源代码看出，所有Message的target就是handler自身。
+Handler的绝大部分方法都是用来send Message的。各种各样不同的方法其实最后就是调用了sendMessageAtTime这个函数。从源代码看出，所有Message的target就是Handler自身。
 
+```
+private static Message getPostMessage(Runnable r) {
+    Message m = Message.obtain();
+    m.callback = r;
+    return m;
+}
+```
+另外一个值得注意的方法就是getPostMessage。Handler send相关的函数一般也有提供Runnable参数的版本。其实本质上，Handler只不过将Runnable作为了Message的callback暂存起来，最终还是通过Message完成的消息传递。
