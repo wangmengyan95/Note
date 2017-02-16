@@ -67,7 +67,14 @@ public void dispatchMessage(Message msg) {
 private static void handleCallback(Message message) {
     message.callback.run();
 }
+
+public interface Callback {
+    public boolean handleMessage(Message msg);
+}
 ```
-dispatchMessage是另外一个比较重要的方法。它是在Looper.loop()中被调用的。它定义了Handler处理msg的顺序
+
+dispatchMessage是另外一个比较重要的方法。它是在Looper.loop()中被调用的。它定义了Handler处理msg的顺序。
+
 1. 如果msg包含Callback，则优先用此Callback处理。Callback如上所述，就是定义msg时传入的Runnable参数。
-2. 如果Handler
+2. 如果Handler定义了Callback，则用此Callback处理。这个Callback是Handler类里定义的一个接口，只包含了handleMessage(Message msg)这一个函数。
+3. 如果上述条件都不成立，则默认调用handleMessage方法。handleMessage是一个需要被子类重写的方法。
