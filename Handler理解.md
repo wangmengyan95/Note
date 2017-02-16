@@ -49,3 +49,25 @@ private static Message getPostMessage(Runnable r) {
 }
 ```
 另外一个值得注意的方法就是getPostMessage。Handler send相关的函数一般也有提供Runnable参数的版本。其实本质上，Handler只不过将Runnable作为了Message的callback暂存起来，最终还是通过Message完成的消息传递。
+
+```
+public void dispatchMessage(Message msg) {
+    if (msg.callback != null) {
+        handleCallback(msg);
+    } else {
+        if (mCallback != null) {
+            if (mCallback.handleMessage(msg)) {
+                return;
+            }
+        }
+        handleMessage(msg);
+    }
+}
+
+private static void handleCallback(Message message) {
+    message.callback.run();
+}
+```
+dispatchMessage是另外一个比较重要的方法。它是在Looper.loop()中被调用的。它定义了Handler处理msg的顺序
+1. 如果msg包含Callback，则优先用此Callback处理。Callback如上所述，就是定义msg时传入的Runnable参数。
+2. 如果Handler
