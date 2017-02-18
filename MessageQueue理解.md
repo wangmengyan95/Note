@@ -153,3 +153,119 @@ boolean enqueueMessage(Message msg, long when) {
     return true;
 }
 ```
+
+##删除Message
+
+```
+void removeMessages(Handler h, int what, Object object) {
+    if (h == null) {
+        return;
+    }
+
+    synchronized (this) {
+        Message p = mMessages;
+
+        // Remove all messages at front.
+        // 从头开始遍历链表，如果Message满足条件就删除并且更新mMessages链表头，
+        // 直到mMessages链表头不满足条件为止
+        while (p != null && p.target == h && p.what == what
+               && (object == null || p.obj == object)) {
+            Message n = p.next;
+            mMessages = n;
+            p.recycleUnchecked();
+            p = n;
+        }
+
+        // Remove all messages after front.
+        // 继续遍历链表，删除满足条件结点，直至链表末尾
+        while (p != null) {
+            Message n = p.next;
+            if (n != null) {
+                if (n.target == h && n.what == what
+                    && (object == null || n.obj == object)) {
+                    Message nn = n.next;
+                    n.recycleUnchecked();
+                    p.next = nn;
+                    continue;
+                }
+            }
+            p = n;
+        }
+    }
+}
+```
+删除Message还有几个其它的类似函数，删除的具体流程都是一样的，唯一区别就是判断Message是否满足的条件不同。
+
+##关闭MessageQueue
+
+```
+void quit(boolean safe) {
+    if (!mQuitAllowed) {
+        throw new IllegalStateException("Main thread not allowed to quit.");
+    }
+
+    synchronized (this) {
+        // 如果选择安全quit，则有可能MessageQueue中还有Message，用mQuitting标记，
+        // 避免无意义多次执行检查
+        if (mQuitting) {
+            return;
+        }
+        mQuitting = true;
+
+        if (safe) {
+            removeAllFutureMessagesLocked();
+        } else {
+            removeAllMessagesLocked();
+        }
+
+        // We can assume mPtr != 0 because mQuitting was previously false.
+        nativeWake(mPtr);
+    }
+}
+
+private void removeAllFutureMessagesLocked() {
+    final long now = SystemClock.uptimeMillis();
+    Message p = mMessages;
+    if (p != null) {
+        if (p.when > now) {
+            // p.when > now 说明链表内的所有Message均未到执行的时间，
+            // 这种情况删除所有Message
+            removeAllMessagesLocked();
+        } else {
+            Message n;
+            // 遍历列表，找到第一个不可执行的Message，
+            // 退出循环的状态是 p.when <= now < n.when
+            for (;;) {
+                n = p.next;
+                if (n == null) {
+                    return;
+                }
+                if (n.when > now) {
+                    break;
+                }
+                p = n;
+            }
+
+            // 删除从Message n开始后的所有元素 
+            p.next = null;
+            do {
+                p = n;
+                n = p.next;
+                p.recycleUnchecked();
+            } while (n != null);
+        }
+    }
+}
+
+private void removeAllMessagesLocked() {
+    // 遍历链表，移除所有Message
+    Message p = mMessages;
+    while (p != null) {
+        Message n = p.next;
+        p.recycleUnchecked();
+        p = n;
+    }
+    mMessages = null;
+}
+```
+关闭MessageQueue分两种情况，如果选择安全关闭，则MessageQueue中会保留所有已经到达执行时间的Message，等待它们被从MessageQueue中取出。如果选择不安全关闭，则会清楚MessageQueue中的所有Message。
