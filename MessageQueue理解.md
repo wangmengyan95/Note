@@ -385,3 +385,10 @@ Message next() {
     }
 }
 ```
+
+MessageQueue的基本返回逻辑就是
+- 如果有Barrier，则返回第一个可执行的异步Message
+- 如果没有Barrier，则返回第一个可执行的Message
+- 如果没有可执行的Message，并且是第一次Idle，则运行IdleHandler，并且根据自定义的queueIdle()方法决定是否保留IdleHandler
+- 如果没有可执行的Message，并且不是第一次Idle，则阻塞等待，直到timeout或者被唤醒
+- 如果是在退出状态，则返回null，这也会导致Looper.loop()方法直接结束
