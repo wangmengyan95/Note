@@ -51,4 +51,4 @@ public static void loop() {
     }
 }
 ```
-loop()函数是Looper工作的核心。不过其实也比较容易理解。Looper不断的阻塞的从MessageQueue中取出message，并交给message的target来处理。msg.target实际上是一个Handler，在接下来的文章中会继续理解Handler是怎么工作的。
+loop()函数是Looper工作的核心。不过其实也比较容易理解。Looper不断的阻塞的从MessageQueue中取出message，并交给message的target来处理。msg.target实际上是一个Handler，在接下来的文章中会继续理解Handler是怎么工作的。Looper退出的方式就是当MessageQueue中返回了null值。通过分析MessageQueue的源码我们可以知道只有MessageQueue quit的时候，next()函数才为null（其他情况会阻塞等待）。所以可以认为MessageQueue的关闭结束了loop()函数的循环，从而关闭了Looper。
