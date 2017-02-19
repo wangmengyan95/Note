@@ -37,6 +37,13 @@ public Looper getLooper() {
 }
 ```
 
-HandlerThread的源码比较简单，从run()函数中可以看出当线程启动时我们创建了一个与这个线程对应的Looper，HandlerThread同时也提供了getLooper()函数方便我们取得这个Looper，创建相应的Handler。
+HandlerThread的源码比较简单，从run()函数中可以看出当线程启动时我们创建了一个与这个线程对应的Looper，HandlerThread同时也提供了getLooper()函数方便我们取得这个Looper，创建相应的Handler。从源码中可以看出，所用基于同一个HandlerThread的Handler里的Message是被串行处理的，因为这些Message都对应着相同的Looper，即内部相同的MessageQueue。
 
-
+## 用法
+```
+HandlerThread workThread = new HandlerThread("WorkHandler");
+// 在创建Handler必须首先调用Thread.start()函数。start()函数会创建Thread,调用Thread.run()函数，进而创建出对应的Looper。
+workThread.start();
+Handler workHandler = new WorkHandler(workThread.getLooper());
+workHandler.sendEmptyMessage(0);
+```
