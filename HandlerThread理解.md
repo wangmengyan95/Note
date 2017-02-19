@@ -42,7 +42,7 @@ HandlerThread的源码比较简单，从run()函数中可以看出当线程启�
 ## 用法
 ```
 HandlerThread workThread = new HandlerThread("WorkHandler");
-// 在创建Handler必须首先调用Thread.start()函数。start()函数会创建Thread,调用Thread.run()函数，进而创建出对应的Looper。
+// 在创建Handler必须首先调用Thread.start()函数。start()函数会创建Thread,调用Thread.run()函数，进而创建出对应的Looper
 workThread.start();
 Handler workHandler = new WorkHandler(workThread.getLooper());
 workHandler.sendEmptyMessage(0);
