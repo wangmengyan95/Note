@@ -112,5 +112,3 @@ ViewHolder getScrapOrHiddenOrCachedHolderForPosition(int position, boolean dryRu
 - Recycler.getViewForPosition(...)
 
 在getViewForPosition(..)中，Recycler通过第一级缓存比对position，很快将对应的ViewHolder返回，快速完成了整个measure的流程。
-
-综上所述，第一级缓存逻辑的核心就是当数据没有发生变化时（即我们不需要重新去adapter bindViewHolder），我们可以尽量用原来相同位置的ViewHolder显示一样的数据。
