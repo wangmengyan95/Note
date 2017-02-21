@@ -84,3 +84,21 @@ ViewHolder getScrapOrHiddenOrCachedHolderForPosition(int position, boolean dryRu
     ......
 }
 ```
+
+通俗的讲第一级缓存主要负责缓存还在屏幕上的ViewHoler，以LinearLayoutManager为例，ViewHoler被加入第一级缓存的一种流程为
+- RecyclerView.onMeasure()
+- RecyclerView.dispatchLayoutStep2()
+- LinearLayoutManager.onLayoutChildren(...)
+- LayoutManager.detachAndScrapAttachedViews(...)
+
+ ```
+ public void detachAndScrapAttachedViews(Recycler recycler) {
+    final int childCount = getChildCount();
+    for (int i = childCount - 1; i >= 0; i--) {
+        final View v = getChildAt(i);
+        scrapOrRecycleView(recycler, i, v);
+    }
+}
+ ```
+
+当我们刷新RecyclerView时，如果使用LinearLayoutManager，我们会发现LinearLayoutManager依次讲屏幕上所有的ViewHolder（准确的说RecyclerView所有子View对应的ViewHolder）都加入了第一级缓存。
