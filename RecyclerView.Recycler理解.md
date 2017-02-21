@@ -85,7 +85,7 @@ ViewHolder getScrapOrHiddenOrCachedHolderForPosition(int position, boolean dryRu
 }
 ```
 
-通俗的讲第一级缓存主要负责缓存还在屏幕上的ViewHoler，以LinearLayoutManager为例，ViewHoler被加入第一级缓存的一种流程为
+通俗的讲第一级缓存主要负责缓存还在屏幕上的并且对应数据并没有发生变化的ViewHoler，以LinearLayoutManager为例，ViewHoler被加入第一级缓存的一种流程为
 - RecyclerView.onMeasure()
 - RecyclerView.dispatchLayoutStep2()
 - LinearLayoutManager.onLayoutChildren(...)
@@ -101,9 +101,14 @@ ViewHolder getScrapOrHiddenOrCachedHolderForPosition(int position, boolean dryRu
 }
  ```
 
-当我们刷新RecyclerView时，如果使用LinearLayoutManager，我们会发现LinearLayoutManager依次讲屏幕上所有的ViewHolder（准确的说RecyclerView所有子View对应的ViewHolder）都加入了第一级缓存。
+当我们重新layout RecyclerView时，如果使用LinearLayoutManager，我们会发现LinearLayoutManager依次讲屏幕上所有的ViewHolder（准确的说RecyclerView所有子View对应的ViewHolder）都加入了第一级缓存。
 
 从第一级缓存中取出ViewHolder的逻辑比较简单，其中最核心的一条判定标准就是holder.getLayoutPosition() == position，即如果原来ViewHolder用来显示某个位置的信息，当数据源没发生变化，我们仍然可以继续用这个ViewHolder显示这个位置的信息。
 
+继续上述流程，在detachAndScrapAttachedViews(...)后LinearLayoutManager依次讲屏幕上所有的ViewHolder都加入了第一级缓存
+- LinearLayoutManager.fill(...)
+- LinearLayoutManager.layoutChunk(...)
+- LayoutState.next(...)
+- Recycler.getViewForPosition(...)
 
-
+在getViewForPosition(..)中，Recycler通过第一级缓存比对position，很快将对应的ViewHolder返回，快速完成了整个measure的流程。
