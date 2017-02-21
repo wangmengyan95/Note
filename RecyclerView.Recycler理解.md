@@ -102,3 +102,8 @@ ViewHolder getScrapOrHiddenOrCachedHolderForPosition(int position, boolean dryRu
  ```
 
 当我们刷新RecyclerView时，如果使用LinearLayoutManager，我们会发现LinearLayoutManager依次讲屏幕上所有的ViewHolder（准确的说RecyclerView所有子View对应的ViewHolder）都加入了第一级缓存。
+
+从第一级缓存中取出ViewHolder的逻辑比较简单，其中最核心的一条判定标准就是holder.getLayoutPosition() == position，即如果原来ViewHolder用来显示某个位置的信息，当数据源没发生变化，我们仍然可以继续用这个ViewHolder显示这个位置的信息。
+
+
+
