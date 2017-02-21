@@ -105,10 +105,12 @@ ViewHolder getScrapOrHiddenOrCachedHolderForPosition(int position, boolean dryRu
 
 从第一级缓存中取出ViewHolder的逻辑比较简单，其中最核心的一条判定标准就是holder.getLayoutPosition() == position，即如果原来ViewHolder用来显示某个位置的信息，当数据源没发生变化，我们仍然可以继续用这个ViewHolder显示这个位置的信息。
 
-继续上述流程，在detachAndScrapAttachedViews(...)后LinearLayoutManager依次讲屏幕上所有的ViewHolder都加入了第一级缓存
+继续上述流程，在detachAndScrapAttachedViews(...)后LinearLayoutManager依次将屏幕上所有的ViewHolder都加入了第一级缓存之后
 - LinearLayoutManager.fill(...)
 - LinearLayoutManager.layoutChunk(...)
 - LayoutState.next(...)
 - Recycler.getViewForPosition(...)
 
 在getViewForPosition(..)中，Recycler通过第一级缓存比对position，很快将对应的ViewHolder返回，快速完成了整个measure的流程。
+
+综上所述，第一级缓存逻辑的核心就是当数据没有发生变化时（即我们不需要重新去adapter bindViewHolder），我们可以尽量用原来相同位置的ViewHolder显示一样的数据。
