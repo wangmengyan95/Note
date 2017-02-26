@@ -153,3 +153,6 @@ public final Parcelable.Creator<?> readParcelableCreator(ClassLoader loader) {
 * 当取得Parcelable对象的CREATOR后，我们通过调用自定义的createFromParcel(..)重建出对象。
 
 ##Serializable
+Parcel中对Serializable对象的读取利用了Java本身的ObjectInputStream，ObjectOutputStream。Parcel利用ObjectInputStream，ObjectOutputStream完成了对Serializable对象的序列化和反序列化。
+
+对于ObjectOutputStream Serializable对象的写入，它最核心就是writeSerialData()这个方法。在这个方法中，会首先判断对象是否重载了writeObject(...)方法（`slotDesc.hasWriteObjectMethod()`），如果有则调用（`slotDesc.invokeWriteObject(obj, this)`），否则就调用默认的写入方法（`defaultWriteFields(obj, slotDesc)`）。对于
