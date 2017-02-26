@@ -61,4 +61,95 @@ createFromParcel里从Parcel读取数据的顺序应该和writeToParcel向Parcel
 
 #Parcelable vs Serializable
 
-这似乎是一到被
+这似乎是一个被经常问到的面试题，我们可以从Parcel的源码中看看两者到底在使用的时候有什么区别。
+
+##Parcelable
+```
+public final void writeParcelable(Parcelable p, int parcelableFlags) {
+    if (p == null) {
+        writeString(null);
+        return;
+    }
+    writeParcelableCreator(p);
+    p.writeToParcel(this, parcelableFlags);
+}
+
+public final void writeParcelableCreator(Parcelable p) {
+    String name = p.getClass().getName();
+    writeString(name);
+}
+```
+将Parcelable写入Parcel的方法非常简单，我们首先向Parcel中写入Parcelable对象的实际类名，接着调用Parcelable.writeToParcel()写入具体数据即可。
+
+
+```
+public final <T extends Parcelable> T readParcelable(ClassLoader loader) {
+    Parcelable.Creator<?> creator = readParcelableCreator(loader);
+    if (creator == null) {
+        return null;
+    }
+    if (creator instanceof Parcelable.ClassLoaderCreator<?>) {
+      Parcelable.ClassLoaderCreator<?> classLoaderCreator =
+          (Parcelable.ClassLoaderCreator<?>) creator;
+      return (T) classLoaderCreator.createFromParcel(this, loader);
+    }
+    return (T) creator.createFromParcel(this);
+}
+
+public final Parcelable.Creator<?> readParcelableCreator(ClassLoader loader) {
+    String name = readString();
+    if (name == null) {
+        return null;
+    }
+    Parcelable.Creator<?> creator;
+    synchronized (mCreators) {
+        HashMap<String,Parcelable.Creator<?>> map = mCreators.get(loader);
+        if (map == null) {
+            map = new HashMap<>();
+            mCreators.put(loader, map);
+        }
+        creator = map.get(name);
+        if (creator == null) {
+            try {
+                // If loader == null, explicitly emulate Class.forName(String) "caller
+                // classloader" behavior.
+                ClassLoader parcelableClassLoader =
+                        (loader == null ? getClass().getClassLoader() : loader);
+                // Avoid initializing the Parcelable class until we know it implements
+                // Parcelable and has the necessary CREATOR field. http://b/1171613.
+                Class<?> parcelableClass = Class.forName(name, false /* initialize */,
+                        parcelableClassLoader);
+                if (!Parcelable.class.isAssignableFrom(parcelableClass)) {
+                    throw new BadParcelableException("Parcelable protocol requires that the "
+                            + "class implements Parcelable");
+                }
+                Field f = parcelableClass.getField("CREATOR");
+                if ((f.getModifiers() & Modifier.STATIC) == 0) {
+                    throw new BadParcelableException("Parcelable protocol requires "
+                            + "the CREATOR object to be static on class " + name);
+                }
+                Class<?> creatorType = f.getType();
+                if (!Parcelable.Creator.class.isAssignableFrom(creatorType)) {
+                    // Fail before calling Field.get(), not after, to avoid initializing
+                    // parcelableClass unnecessarily.
+                    throw new BadParcelableException("Parcelable protocol requires a "
+                            + "Parcelable.Creator object called "
+                            + "CREATOR on class " + name);
+                }
+                creator = (Parcelable.Creator<?>) f.get(null);
+            }
+            
+            ...
+            
+            map.put(name, creator);
+        }
+    }
+
+    return creator;
+}
+```
+从Parcel中读取Parcelable的过程略显复杂
+* 我们首先需要用readParcelableCreator()获得Parcelable对象的CREATOR，Parcel维护了一个内部的缓存mCreators方便我们找到对应的CREATOR，当时当我们第一次尝试获得CREATOR时，我们需要通过反射创建Parcelable对象的CREATOR。
+* 当取得Parcelable对象的CREATOR后，我们通过调用自定义的createFromParcel(..)重建出对象。
+
+##Serializable
