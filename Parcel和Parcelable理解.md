@@ -155,4 +155,9 @@ public final Parcelable.Creator<?> readParcelableCreator(ClassLoader loader) {
 ##Serializable
 Parcel中对Serializable对象的读取利用了Java本身的ObjectInputStream，ObjectOutputStream。Parcel利用ObjectInputStream，ObjectOutputStream完成了对Serializable对象的序列化和反序列化。
 
-对于ObjectOutputStream Serializable对象的写入，它最核心就是writeSerialData()这个方法。在这个方法中，会首先判断对象是否重载了writeObject(...)方法（`slotDesc.hasWriteObjectMethod()`），如果有则调用（`slotDesc.invokeWriteObject(obj, this)`），否则就调用默认的写入方法（`defaultWriteFields(obj, slotDesc)`）。对于
+对于ObjectOutputStream Serializable对象的写入，它最核心就是writeSerialData()这个方法。在这个方法中，会首先判断对象是否重载了writeObject(...)方法（`slotDesc.hasWriteObjectMethod()`），如果有则调用（`slotDesc.invokeWriteObject(obj, this)`），否则就调用默认的写入方法（`defaultWriteFields(obj, slotDesc)`）。默认的写入方法中，我们会通过反射获取对象各个成员变量的值，中间的过程比较繁琐。
+
+对于ObjectInputStream Serializable对象的写入，它最核心就是readSerialData()这个方法。在这个方法中，会首先判断对象是否重载了readObject(...)方法（`slotDesc.hasReadObjectMethod()`），如果有则调用（`slotDesc.invokeReadObject(obj, this)`），否则就调用默认的写入方法（`defaultReadFields(obj, slotDesc)`）。默认的读取方法中，我们会通过反射获取对象各个成员变量的值，中间的过程同样比较繁琐。
+
+##Conclusion
+综上所述，当对象没有writeObject(..)和readObject(..)时，因为Parcelable的实现一般不需要通过反射获取各个成员变量的值，使用Parcelable传递对象相比Serializable更有效率。当对象合理重载writeObject(..)和readObject(..)时，Parcelable和Serializable的效率相差不大。
