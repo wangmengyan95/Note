@@ -8,7 +8,8 @@ Parcel支持存取的数据类型包括
 * Primitive 数组，包括boolean数组， byte数组，double数组 ...
 * FileDescrpotr
 * Binder
-* Parcelable，即实现了Parcelable的对象
+* Parcelable，即实现了Parcelable接口的对象
+* Serializable，即实现了Serializable接口的对象
 
 #Parcelable
 Parcelable接口定义了可以被Parcel存取传输的对象需要实现的方法。一个简单的Parcelable对象的例子如下
@@ -57,3 +58,7 @@ private static class People implements Parcelable {
 * CREATOR是一个static field，根据Parceable的文档，所有Parcelable对象都需要有这个field，它主要负责如何从Parcel里读取数据重新构建对象。特别需要注意的是
 createFromParcel里从Parcel读取数据的顺序应该和writeToParcel向Parcel写入数据的顺序一致。
 * describeContents()方法也是Parcelable对象必须实现的方法。关于这个方法的含义官方文档我觉得并没有说清楚，我从google group[这里](https://groups.google.com/forum/#!topic/android-developers/QVSWGS-8W0A)找到了一个相对更好理解的答案。简单点说，Bundle.hasFileDescriptors()会依赖于这个方法的返回值判断Parcel里是否含有FileDescriptor。一般来说如果不传输FileDescriptor，返回0即可。如果传输FileDescriptor，像ParcelableFileDescriptor一样返回Parcelable.CONTENTS_FILE_DESCRIPTOR即可。
+
+#Parcelable vs Serializable
+
+这似乎是一到被
