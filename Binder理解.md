@@ -21,3 +21,11 @@ Binder引用是内核态中对于binder_node的引用，对应的数据结构是
 * flat_binder_object Srevice在Parcel中存储的结构
 * binder_transaction_data 是对flat_binder_object的进一步包装，由IPCThreadState根据Parcel中的data生成
 * binder_write_read 用户态Service与内核态binder驱动通信使用的数据结构，是ioctl函数的参数之一
+
+## ServiceManager的启动
+
+1. ServiceManager是一个守护进程，随着android系统的启动而启动
+2. 通过binder_open()，与binder驱动取得联系，完成内存映射，创建bind_proc。
+3. 通过binder_become_context_manager()，利用binder_ioctl向binder驱动发送BINDER_SET_CONTEXT_MGR。创建binder_node，binder_thread。全局变量binder_context_mgr_node此时指向ServiceManager的binder_node。
+4. 通过binder_loop()，进入循环，阻塞读取，等待新的事物被加入到binder_thread的list中。
+
