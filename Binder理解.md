@@ -34,3 +34,9 @@ Binder引用是内核态中对于binder_node的引用，对应的数据结构是
 1. 通过ProcessState::self()，创建ProcessState，与binder驱动取得联系，完成内存映射，创建bind_proc。
 2. 通过ProcessState::getStrongProxyForHandle()，创建了和此线程对应的IPCThreadState（IPCThreadState是Thread Local的变量），返回了handle为0的BpBinder对象
 3. 通过interface_cast<IServiceManager>的宏函数转换，返回了new BpServiceManager(new BpBinder(0))。事实上，当一个Service调用defaultServiceManager()获取ServiceManager时，得到的并不是ServiceManager本身，而是一个BpServiceManager对象。
+
+## 向ServiceManager添加Service
+
+1. 以MediaPlayerService为例，MediaPlayerService通过调用defaultServiceManager()->addService(String16("media.player"), new MediaPlayerService())向ServiceManager添加服务。
+2. 在addService()中，利用Parcel存储需要向ServiceManager发送的信息，包括InterfaceDescriptor，Name，StrongBinder等等。比较重要的就是StrongBinder这个信息，从源代码看data.writeStrongBinder(service)，这个就是MediaPlayerService本身。
+3. 通过Parcel::flatten_binder()，我们对MediaPlayerService对象进行
