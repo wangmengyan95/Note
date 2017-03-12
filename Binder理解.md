@@ -29,3 +29,8 @@ Binder引用是内核态中对于binder_node的引用，对应的数据结构是
 3. 通过binder_become_context_manager()，利用binder_ioctl向binder驱动发送BINDER_SET_CONTEXT_MGR。创建binder_node，binder_thread。全局变量binder_context_mgr_node此时指向ServiceManager的binder_node。
 4. 通过binder_loop()，进入循环，阻塞读取，等待新的事物被加入到binder_thread的list中。
 
+## ServiceManager的获取
+
+1. 通过ProcessState::self()，创建ProcessState，与binder驱动取得联系，完成内存映射，创建bind_proc。
+2. 通过ProcessState::getStrongProxyForHandle()，创建了和此线程对应的IPCThreadState（IPCThreadState是Thread Local的变量），返回了handle为0的BpBinder对象
+3. 通过interface_cast<IServiceManager>的宏函数转换，返回了new BpServiceManager(new BpBinder(0))。事实上，当一个Service调用defaultServiceManager()获取ServiceManager时，得到的并不是ServiceManager本身，而是一个BpServiceManager对象。
