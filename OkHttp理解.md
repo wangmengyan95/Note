@@ -61,3 +61,18 @@ public synchronized ExecutorService executorService() {
 ```
 该方法返回一个ThreadPoolExecutor。比较重要的参数是SynchronousQueue，即这个Executor对于执行的Runnable是先进先出的。
 
+AsyncCall execute方法
+```
+@Override protected void execute() {
+  boolean signalledCallback = false;
+  try {
+    Response response = getResponseWithInterceptorChain();
+    ...
+  } catch (IOException e) {
+    ...
+  } finally {
+    client.dispatcher().finished(this);
+  }
+}
+```
+当AsyncCall
