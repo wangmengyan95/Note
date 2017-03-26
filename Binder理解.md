@@ -50,5 +50,6 @@ Binder引用是内核态中对于binder_node的引用，对应的数据结构是
 ## 从ServiceManager获取Service
 
 1. 通过defaultServiceManager()获得IServiceManager的引用sm，然后通过sm->getService(String16("media.player"))获取MediaPlayerService的服务。
-2. 通过BpServiceManager::checkService()，将服务名字写入Parcel data中，并通过remote()->transact()传输至binder驱动。
-3. 
+2. 通过BpServiceManager::checkService()，将服务名字写入Parcel data中。
+3. 通过IPCThreadState::writeTransactionData()，将Parcel data转换为binder_transaction_data tr，并写入mOut buffer中。
+4. 通过IPCThreadState::talkWithDriver()，与binder driver
