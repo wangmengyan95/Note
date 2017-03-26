@@ -52,4 +52,10 @@ Binder引用是内核态中对于binder_node的引用，对应的数据结构是
 1. 通过defaultServiceManager()获得IServiceManager的引用sm，然后通过sm->getService(String16("media.player"))获取MediaPlayerService的服务。
 2. 通过BpServiceManager::checkService()，将服务名字写入Parcel data中。
 3. 通过IPCThreadState::writeTransactionData()，将Parcel data转换为binder_transaction_data tr，并写入mOut buffer中。
-4. 通过IPCThreadState::talkWithDriver()，与binder driver
+4. 通过IPCThreadState::talkWithDriver()，调用ioctl()，与binder driver通信。
+5. 通过binder驱动的binder_transaction()，将事务添加至ServiceManager的todo list中，并唤醒ServiceManager的进程。
+6. 通过IPCThreadState::binder_thread_read()，将数据由内核空间拷贝至用户空间。
+7. 通过ServiceManager::binder_parse()，将数据交给回调函数svcmgr_handler处理。
+8. 通过do_find_service，根据服务名字"media.player"，取得MediaPlayerService binder实体在ServiceManager进程中的Binder引用ref。
+9. 通过binder_send_reply(), binder_write(), 将binder_write_read结构体写入binder内核驱动。
+10. 通过binder驱动的binder_transaction()，根据MediaPlayerService binder实体在ServiceManager进程中的Binder引用ref，获得MediaPlayerService的引用binder_ref结构体，通过binder_ref结构体获得MediaPlayerService的binder实体ref->node，最后为MediaPlayerService的binder实体在MediaPlayer的binder上下文中生成引用new_ref，并将这个new_ref->desc返回给MediaPlayer。
