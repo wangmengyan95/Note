@@ -59,3 +59,5 @@ Binder引用是内核态中对于binder_node的引用，对应的数据结构是
 8. 通过do_find_service，根据服务名字"media.player"，取得MediaPlayerService binder实体在ServiceManager进程中的Binder引用ref。
 9. 通过binder_send_reply(), binder_write(), 将binder_write_read结构体写入binder内核驱动。
 10. 通过binder驱动的binder_transaction()，根据MediaPlayerService binder实体在ServiceManager进程中的Binder引用ref，获得MediaPlayerService的引用binder_ref结构体，通过binder_ref结构体获得MediaPlayerService的binder实体ref->node，最后为MediaPlayerService的binder实体在MediaPlayer的binder上下文中生成引用new_ref，并将这个new_ref->desc返回给MediaPlayer。
+11. 通过Parcel::readStrongBinder()，Parcel::unflatten_binder(), 从binder驱动返回的数据中读出了flat->handle的值，生成了BpBinder(handle)对象。
+12. 通过nterface_cast<IMediaPlayerService>(binder)，返回BpServiceManager(binder)对象。
