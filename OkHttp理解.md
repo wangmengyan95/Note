@@ -75,4 +75,40 @@ AsyncCall execute方法
   }
 }
 ```
-当AsyncCall
+当AsyncCall被加入ThreadPoolExecutor后，最终会被执行，即调用AsyncCall execute方法。getResponseWithInterceptorChain()是真正执行http request的方法，我们以后进行详细分析。在执行完request获得response后，最后会执行Dispatcher finished方法。
+
+Dispatcher finished方法 promoteCalls方法
+```
+private <T> void finished(Deque<T> calls, T call, boolean promoteCalls) {
+  int runningCallsCount;
+  Runnable idleCallback;
+  synchronized (this) {
+    if (!calls.remove(call)) throw new AssertionError("Call wasn't in-flight!");
+    if (promoteCalls) promoteCalls();
+    runningCallsCount = runningCallsCount();
+    idleCallback = this.idleCallback;
+  }
+
+  if (runningCallsCount == 0 && idleCallback != null) {
+    idleCallback.run();
+  }
+}
+
+private void promoteCalls() {
+  if (runningAsyncCalls.size() >= maxRequests) return; // Already running max capacity.
+  if (readyAsyncCalls.isEmpty()) return; // No ready calls to promote.
+
+  for (Iterator<AsyncCall> i = readyAsyncCalls.iterator(); i.hasNext(); ) {
+    AsyncCall call = i.next();
+
+    if (runningCallsForHost(call) < maxRequestsPerHost) {
+      i.remove();
+      runningAsyncCalls.add(call);
+      executorService().execute(call);
+    }
+
+    if (runningAsyncCalls.size() >= maxRequests) return; // Reached max capacity.
+  }
+}
+```
+Dispatcher finished方法最后会调用promoteCalls方法。该方法会从readyAsyncCalls列表中不断取出新的AsyncCall，加入ThreadPoolExecutor，直到达到该HttpClient可同时执行request的上限。
