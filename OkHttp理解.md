@@ -117,6 +117,8 @@ Dispatcher finished方法最后会调用promoteCalls方法。该方法会从read
 
 ## Interceptor
 Interceptor机制是我认为OkHttp非常有趣的机制。它将不同的功能分割成了不同的Interceptor，不同的Interceptor可以自由的组合，实现一系列的功能。
+
+Interceptor的定义如下
 ```
 public interface Interceptor {
   Response intercept(Chain chain) throws IOException;
@@ -130,4 +132,50 @@ public interface Interceptor {
   }
 }
 ```
-Interceptor
+Chain是由RealInterceptorChain实现的
+```
+public final class RealInterceptorChain implements Interceptor.Chain {
+  private final List<Interceptor> interceptors;
+  private final int index;
+
+  ...
+
+  public Response proceed(Request request, StreamAllocation streamAllocation, HttpCodec httpCodec,
+      Connection connection) throws IOException {
+    if (index >= interceptors.size()) throw new AssertionError();
+
+    ....
+
+    RealInterceptorChain next = new RealInterceptorChain(
+        interceptors, streamAllocation, httpCodec, connection, index + 1, request);
+    Interceptor interceptor = interceptors.get(index);
+    Response response = interceptor.intercept(next);
+
+    ....
+
+    return response;
+  }
+}
+
+```
+
+Interceptor的实现非常多，但是不同的Interceptor的均包括类似的逻辑。
+```
+public final class XXXInterceptor implements Interceptor {
+
+  @Override public Response intercept(Chain chain) throws IOException {
+    Request request = chain.request();
+
+    // Change request if necessary
+    ....
+
+    Response response = chain.proceed(newRequest);
+
+    // Change response if necessary
+    ...
+
+    return newResponse;
+  }
+}
+```
+由上面的代码就可以看出，chain中维护了一个Interceptor的列表，并且维护了当前Interceptor的index，我们会从Interceptor的列表中取出对应的Interceptor，并且新生成一个index指向下一个Interceptor的chain，并调用interceptor.interceptor(newChain)。在Interceptor的intercept方法中，我很会调用chain.proceed(request)，使得
