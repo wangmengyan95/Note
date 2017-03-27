@@ -178,4 +178,4 @@ public final class XXXInterceptor implements Interceptor {
   }
 }
 ```
-由上面的代码就可以看出，chain中维护了一个Interceptor的列表，并且维护了当前Interceptor的index，我们会从Interceptor的列表中取出对应的Interceptor，并且新生成一个index指向下一个Interceptor的chain，并调用interceptor.interceptor(newChain)。在Interceptor的intercept方法中，我很会调用chain.proceed(request)，使得下一个Interceptor有机会去intercept chain。
+由上面的代码就可以看出，chain中维护了一个Interceptor的列表，并且维护了当前Interceptor的index，我们会从Interceptor的列表中取出对应的Interceptor，并且新生成一个index指向下一个Interceptor的chain，并调用interceptor.interceptor(newChain)。在Interceptor的intercept方法中，我会调用chain.proceed(request)，使得下一个Interceptor有机会去intercept chain。至此，request会先从前到后经过Interceptor list中的每一个Interceptor，直至最底层的Interceptor真正去执行这个request并且得到response。而response会从后到前经过Interceptor list中的每一个Interceptor，最后被最开始的chian.proceed()方法返回。
