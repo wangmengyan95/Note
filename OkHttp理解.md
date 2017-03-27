@@ -112,3 +112,5 @@ private void promoteCalls() {
 }
 ```
 Dispatcher finished方法最后会调用promoteCalls方法。该方法会从readyAsyncCalls列表中不断取出新的AsyncCall，加入ThreadPoolExecutor，直到达到该HttpClient可同时执行request的上限。
+
+综上所述，Dispatcher内部维护一个runningAsyncCalls队列，一个readyAsyncCalls队列，通过ThreadPoolExecutor不断执行runningAsyncCalls中的AsyncCall，执行完后通过promoteCalls方法将readyAsyncCalls的AsyncCall移动到runningAsyncCalls，至此实现单一httpClient多线程执行网络请求。
