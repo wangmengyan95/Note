@@ -240,3 +240,5 @@ void put(RealConnection connection) {
   connections.add(connection);
 }
 ```
+
+StreamAllocation获取
