@@ -241,4 +241,4 @@ void put(RealConnection connection) {
 }
 ```
 
-StreamAllocation获取
+StreamAllocation获取Connection的方式比较容易理解。它首先会根据address从ConnectionPool中尝试获取可用的Connection，如果没有的话就会创建Connection，并且放入ConnectionPool中。ConnectionPool
