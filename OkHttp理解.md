@@ -179,3 +179,64 @@ public final class XXXInterceptor implements Interceptor {
 }
 ```
 由上面的代码就可以看出，chain中维护了一个Interceptor的列表，并且维护了当前Interceptor的index，我们会从Interceptor的列表中取出对应的Interceptor，并且新生成一个index指向下一个Interceptor的chain，并调用interceptor.interceptor(newChain)。在Interceptor的intercept方法中，我会调用chain.proceed(request)，使得下一个Interceptor有机会去intercept chain。至此，request会先从前到后经过Interceptor list中的每一个Interceptor，直至最底层的Interceptor真正去执行这个request并且得到response。而response会从后到前经过Interceptor list中的每一个Interceptor，最后被最开始的chian.proceed()方法返回。
+
+## ConnectionPool
+OkHttp是通过ConnectionPool实现连接的重用。每次Client与Sever进行Socket的连接，都需要经过握手等等一系列步骤，当Client频繁与Server进行通信时，每次重新建立Socket连接显然会带来很多不必要的开销。在这种情况下，我们可以在Socket连接建立后，保持Socket一段时间再释放，从而避免频繁握手带来的开销。
+
+```
+public Builder() {
+  ...
+  connectionPool = new ConnectionPool();
+  ...
+}
+```
+每个OkHttpClient对应着一个ConnectionPool，当OkHttpClient初始化时，如果没有特别指定，OkHttpClient即会使用默认的ConnectionPool。
+
+OkHttp通过StreamAllocation对Connection进行操作，如果我们把Connection看做是对Socket的封装，StreamAllocation就是对Connection的封装。之所以需要StreamAllocation的原因就是Http2协议支持对于Connection的复用。即我们能够利用一个Connection进行并发的请求。因此，一个Connection可能对应多个StreamAllocation对象。对于Http1协议，因为不支持并发请求，StreamAllocation与Connection一一对应。
+
+```
+private RealConnection findConnection(int connectTimeout, int readTimeout, int writeTimeout,
+    boolean connectionRetryEnabled) throws IOException {
+  Route selectedRoute;
+  synchronized (connectionPool) {
+    ...
+    // Attempt to get a connection from the pool.
+    Internal.instance.get(connectionPool, address, this);
+    if (connection != null) {
+      return connection;
+    }
+
+    selectedRoute = route;
+  }
+
+  ...
+  synchronized (connectionPool) {
+    // Pool the connection.
+    Internal.instance.put(connectionPool, result);
+    ....
+  }
+  ...
+  return result;
+}
+```
+```
+RealConnection get(Address address, StreamAllocation streamAllocation) {
+  assert (Thread.holdsLock(this));
+  for (RealConnection connection : connections) {
+    if (connection.isEligible(address)) {
+      streamAllocation.acquire(connection);
+      return connection;
+    }
+  }
+  return null;
+}
+
+void put(RealConnection connection) {
+  assert (Thread.holdsLock(this));
+  if (!cleanupRunning) {
+    cleanupRunning = true;
+    executor.execute(cleanupRunnable);
+  }
+  connections.add(connection);
+}
+```
