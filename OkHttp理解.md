@@ -242,3 +242,62 @@ void put(RealConnection connection) {
 ```
 
 StreamAllocation获取Connection的方式比较容易理解。它首先会根据address从ConnectionPool中尝试获取可用的Connection，如果没有的话就会创建Connection，并且放入ConnectionPool中。ConnectionPool内部维护了一个队列connections，用于存储可用的Connection。
+
+```
+long cleanup(long now) {
+  int inUseConnectionCount = 0;
+  int idleConnectionCount = 0;
+  RealConnection longestIdleConnection = null;
+  long longestIdleDurationNs = Long.MIN_VALUE;
+
+  // Find either a connection to evict, or the time that the next eviction is due.
+  synchronized (this) {
+    for (Iterator<RealConnection> i = connections.iterator(); i.hasNext(); ) {
+      RealConnection connection = i.next();
+
+      // If the connection is in use, keep searching.
+      if (pruneAndGetAllocationCount(connection, now) > 0) {
+        inUseConnectionCount++;
+        continue;
+      }
+
+      idleConnectionCount++;
+
+      // If the connection is ready to be evicted, we're done.
+      long idleDurationNs = now - connection.idleAtNanos;
+      if (idleDurationNs > longestIdleDurationNs) {
+        longestIdleDurationNs = idleDurationNs;
+        longestIdleConnection = connection;
+      }
+    }
+
+    if (longestIdleDurationNs >= this.keepAliveDurationNs
+        || idleConnectionCount > this.maxIdleConnections) {
+      // We've found a connection to evict. Remove it from the list, then close it below (outside
+      // of the synchronized block).
+      connections.remove(longestIdleConnection);
+    } else if (idleConnectionCount > 0) {
+      // A connection will be ready to evict soon.
+      return keepAliveDurationNs - longestIdleDurationNs;
+    } else if (inUseConnectionCount > 0) {
+      // All connections are in use. It'll be at least the keep alive duration 'til we run again.
+      return keepAliveDurationNs;
+    } else {
+      // No connections, idle or in use.
+      cleanupRunning = false;
+      return -1;
+    }
+  }
+
+  closeQuietly(longestIdleConnection.socket());
+
+  // Cleanup again immediately.
+  return 0;
+}
+```
+
+ConnectionPool中有专门的ThreadPoolExecutor用来执行清理Connection的Runnable。这个Runnable是Connection被加入ConnectionPool时被启动。在这个Runnalbe中，我们尝试找出空闲时间最长的Connection。
+1. 如果这个Connection空闲的时间超过了最长允许空闲时间，则清理这个Connection，并马上继续再次执行Runnable
+2. 如果这个Connection空闲的时间没有超过最长允许空闲时间，则在keepAliveDurationNs - longestIdleDurationNs后再次执行Runnable
+3. 如果没有空闲的Connection，在keepAliveDurationNs后再次执行Runnable
+4. 如果没有Connection，则不继续执行Runnable，直达下次有新的Connection加入ConnectionPool时为止
