@@ -301,3 +301,6 @@ ConnectionPool中有专门的ThreadPoolExecutor用来执行清理Connection的Ru
 2. 如果这个Connection空闲的时间没有超过最长允许空闲时间，则在keepAliveDurationNs - longestIdleDurationNs后再次执行Runnable
 3. 如果没有空闲的Connection，在keepAliveDurationNs后再次执行Runnable
 4. 如果没有Connection，则不继续执行Runnable，直达下次有新的Connection加入ConnectionPool时为止
+
+## HttpCodec
+HttpCodec是对Connection的进一步抽象，Connection内部包含了Socket，负责握手和建立协议连接，在连接
